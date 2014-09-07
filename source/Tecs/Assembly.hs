@@ -4,13 +4,15 @@ module Tecs.Assembly (
   printOperations
 ) where
 
+import Data.Char
+import Numeric
 import Control.Applicative
 import qualified Data.Map as Map
-import Tecs.Utility
 import Tecs.Definitions
 import Tecs.Types
 import Tecs.Parsing
 
+-- Does not guard against running out of symbol space yet
 computeSymbols :: [Instruction] -> Symbols
 computeSymbols instructions = addVariables startingVariableMemory (addLabels 0 predefinedVariables instructions) instructions
   where
@@ -41,6 +43,13 @@ assembleOperations instructions = sequence $ go instructions
 
 assemble :: String -> Either String [Operation]
 assemble content = parseInstructions content >>= assembleOperations
+
+padResize :: Int -> a -> [a] -> [a]
+padResize targetLength pad input = replicate (targetLength - inputLength) pad ++ drop (inputLength - targetLength) input
+  where inputLength = length input
+
+printBinary :: (Integral a, Show a) => Int -> a -> String
+printBinary digits num = padResize digits '0' (showIntAtBase 2 intToDigit num "")
 
 printOperations :: [Operation] -> String
 printOperations ops = unlines $ map printOperationBinary ops

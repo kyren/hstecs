@@ -5,10 +5,10 @@ module Tecs.Types (
   Operation(..)
 ) where
 
-import Data.Int
+import Data.Word
 import qualified Data.Map as Map
 
-data AValue = AName String | AConstant Int16
+data AValue = AName String | AConstant Word16
   deriving Show
 
 data Instruction =
@@ -17,7 +17,7 @@ data Instruction =
   CInstruction String String String
   deriving Show
 
-type Symbols = Map.Map String Int16
+type Symbols = Map.Map String Word16
 
-data Operation = AOperation Int16 | COperation Int8 Int8 Int8
+data Operation = AOperation Word16 | COperation Word8 Word8 Word8
   deriving Show

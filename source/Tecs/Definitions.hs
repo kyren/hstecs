@@ -3,13 +3,14 @@ module Tecs.Definitions (
   destMap,
   jumpMap,
   predefinedVariables,
-  startingVariableMemory
+  startingVariableMemory,
+  maximumVariableMemory
 ) where
 
-import Data.Int
+import Data.Word
 import qualified Data.Map as Map
 
-compMap :: Map.Map String Int8
+compMap :: Map.Map String Word8
 compMap = Map.fromList [
     ("0", 0x2a),
     ("1", 0x3f),
@@ -41,7 +42,7 @@ compMap = Map.fromList [
     ("D|M", 0x55)
   ]
 
-destMap :: Map.Map String Int8
+destMap :: Map.Map String Word8
 destMap = Map.fromList [
     ("NULL", 0x0),
     ("M", 0x1),
@@ -53,7 +54,7 @@ destMap = Map.fromList [
     ("AMD", 0x7)
   ]
 
-jumpMap :: Map.Map String Int8
+jumpMap :: Map.Map String Word8
 jumpMap = Map.fromList [
     ("NULL", 0x0),
     ("JGT", 0x1),
@@ -65,7 +66,7 @@ jumpMap = Map.fromList [
     ("JMP", 0x7)
   ]
 
-predefinedVariables :: Map.Map String Int16
+predefinedVariables :: Map.Map String Word16
 predefinedVariables = Map.fromList [
     ("SP", 0),
     ("LCL", 1),
@@ -92,5 +93,8 @@ predefinedVariables = Map.fromList [
     ("KBD", 24576)
   ]
 
-startingVariableMemory :: Int16
+startingVariableMemory :: Word16
 startingVariableMemory = 16
+
+maximumVariableMemory :: Word16
+maximumVariableMemory = 16383

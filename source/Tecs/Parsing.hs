@@ -5,17 +5,22 @@ module Tecs.Parsing (
 import Control.Monad
 import qualified Data.Map as Map
 import Data.Maybe
+import Data.Word
+import Data.Char
 import Text.Parsec
-import Text.Parsec.Token
-import Text.Parsec.Language
 import Tecs.Definitions
 import Tecs.Types
 
-lexer :: TokenParser st
-lexer = makeTokenParser emptyDef                                   
+positiveNatural :: Parsec String st Int
+positiveNatural = do
+  digits <- many1 digit
+  return $ foldl (\a i -> a * 10 + digitToInt i) 0 digits
 
 aConstant :: Parsec String st AValue
-aConstant = liftM (AConstant . fromIntegral) $ natural lexer
+aConstant = do
+  num <- positiveNatural
+  when (num > fromIntegral (maxBound :: Word16)) $ fail "Out of bound A-Constant"
+  return $ AConstant $ fromIntegral num
 
 aName :: Parsec String st AValue
 aName = liftM AName $ many1 letter
