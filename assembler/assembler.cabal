@@ -8,6 +8,6 @@ cabal-version:       >=1.10
 executable assembler
   main-is:             Main.hs
   hs-source-dirs:      source
-  build-depends:       base >=4.7, split >= 0.2.2, safe >= 0.3.8, mtl >= 2.2.1, containers >= 0.5.5.1
+  build-depends:       base >=4.7, split >= 0.2.2, safe >= 0.3.8, mtl >= 2.2.1, containers >= 0.5.5.1, parsec >= 3.1.5
   default-language:    Haskell2010
   ghc-options: -Wall -fno-warn-missing-signatures -fwarn-incomplete-patterns -fno-warn-name-shadowing

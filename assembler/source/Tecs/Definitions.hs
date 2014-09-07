@@ -3,7 +3,8 @@ module Tecs.Definitions (
   destMap,
   jumpMap,
   predefinedVariables,
-  startingVariableMemory) where
+  startingVariableMemory
+) where
 
 import Data.Int
 import qualified Data.Map as Map
@@ -42,7 +43,6 @@ compMap = Map.fromList [
 
 destMap :: Map.Map String Int8
 destMap = Map.fromList [
-    ("", 0x0),
     ("NULL", 0x0),
     ("M", 0x1),
     ("D", 0x2),
@@ -55,7 +55,6 @@ destMap = Map.fromList [
 
 jumpMap :: Map.Map String Int8
 jumpMap = Map.fromList [
-    ("", 0x0),
     ("NULL", 0x0),
     ("JGT", 0x1),
     ("JEQ", 0x2),

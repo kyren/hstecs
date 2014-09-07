@@ -4,5 +4,5 @@ main :: IO ()
 main = do
   contents <- getContents
   case assemble contents of
-    Nothing -> putStrLn "Parse Error"
-    Just ops -> putStr $ printOperations ops
+    Left err -> putStrLn $ "Parse Error " ++ err
+    Right ops -> putStr $ printOperations ops

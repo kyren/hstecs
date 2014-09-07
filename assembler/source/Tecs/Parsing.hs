@@ -1,51 +1,96 @@
 module Tecs.Parsing (
-  parseInstruction,
   parseInstructions
-  ) where
+) where
 
-import Data.List
-import Data.Int
+import Control.Monad
+import qualified Data.Map as Map
 import Data.Maybe
-import Data.Char
-import Text.Read
-import Control.Applicative
-import Safe
+import Text.Parsec
+import Text.Parsec.Token
+import Text.Parsec.Language
+import Tecs.Definitions
 import Tecs.Types
-import Data.List.Split
 
-stripCommentsWhitespace :: String -> Maybe String
-stripCommentsWhitespace input = do
-  withoutComment <- listToMaybe (splitOn "//" input)
-  let withoutSpaces = filter (not . isSpace) withoutComment
-  if null withoutSpaces then Nothing else Just withoutSpaces
+lexer :: TokenParser st
+lexer = makeTokenParser emptyDef                                   
 
-parseAInstruction :: String -> Maybe Instruction
-parseAInstruction input
-    | null input = Nothing
-    | head input /= '@' = Nothing
-    | isJust numValue = Just $ AInstruction $ AValue $ fromJust numValue
-    | otherwise = Just $ AInstruction $ AName (tail input)
-  where
-    numValue = readMaybe (tail input) :: Maybe Int16
+aConstant :: Parsec String st AValue
+aConstant = liftM (AConstant . fromIntegral) $ natural lexer
 
-parseLabelInstruction :: String -> Maybe Instruction
-parseLabelInstruction input = do
-  '(' <- headMay input
-  label <- initMay (drop 1 input)
-  ')' <- lastMay input
-  return $ LabelInstruction label
+aName :: Parsec String st AValue
+aName = liftM AName $ many1 letter
 
-parseCInstruction :: String -> Maybe Instruction
-parseCInstruction input = Just $ CInstruction comp dest jump
-  where
-    eqIndex = fromMaybe (-1) (elemIndex '=' input)
-    semIndex = fromMaybe (length input) (elemIndex ';' input)
-    comp = take semIndex (drop (eqIndex + 1) input)
-    dest = take eqIndex input
-    jump = drop (semIndex + 1) input
+aInstruction :: Parsec String st Instruction
+aInstruction = do
+  _ <- char '@'
+  liftM AInstruction $ aConstant <|> aName
 
-parseInstruction :: String -> Maybe Instruction
-parseInstruction i = parseAInstruction i <|> parseLabelInstruction i <|> parseCInstruction i
+labelInstruction :: Parsec String st Instruction
+labelInstruction = do
+  _ <- char '('
+  name <- many1 letter
+  _ <- char ')'
+  return (LabelInstruction name)
 
-parseInstructions :: String -> Maybe [Instruction]
-parseInstructions ls = mapM parseInstruction $ mapMaybe stripCommentsWhitespace (lines ls)
+cDestPart :: Parsec String st String
+cDestPart = do
+  dest <- choice $ map string (Map.keys destMap)
+  _ <- char '='
+  return dest
+
+cCompPart :: Parsec String st String
+cCompPart = choice $ map string (Map.keys compMap)
+
+cJumpPart :: Parsec String st String
+cJumpPart = do
+  _ <- char ';'
+  choice $ map string (Map.keys jumpMap)
+
+cInstruction :: Parsec String st Instruction
+cInstruction = do
+  dest <- try cDestPart <|> return "NULL"
+  comp <- cCompPart
+  jump <- try cJumpPart <|> return "NULL"
+  return $ CInstruction comp dest jump
+
+instructionPart :: Parsec String st Instruction
+instructionPart = aInstruction <|> labelInstruction <|> cInstruction
+
+comment :: Parsec String st ()
+comment = do
+  _ <- string "//"
+  _ <- many (noneOf "\n")
+  return ()
+
+endLinePart :: Parsec String st ()
+endLinePart = do
+  skipMany (oneOf " \t")
+  optional comment
+  _ <- char '\n'
+  return ()
+
+instructionLine :: Parsec String st (Maybe Instruction)
+instructionLine = do
+  skipMany (oneOf " \t")
+  instruction <- instructionPart
+  endLinePart
+  return $ Just instruction
+
+blankLine :: Parsec String st (Maybe Instruction)
+blankLine = do
+  endLinePart
+  return Nothing
+
+instructionOrBlankLine :: Parsec String st (Maybe Instruction)
+instructionOrBlankLine = try blankLine <|> instructionLine
+
+instructions :: Parsec String st [Instruction]
+instructions = do
+  res <- liftM catMaybes $ many instructionOrBlankLine
+  eof
+  return res
+
+parseInstructions :: String -> Either String [Instruction]
+parseInstructions input = case parse instructions "" input of
+  Left err -> Left (show err)
+  Right result -> Right result

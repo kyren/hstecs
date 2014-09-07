@@ -1,17 +1,15 @@
 module Tecs.Assembly (
+  assembleOperations,
   assemble,
   printOperations
-  ) where
+) where
 
-import Data.Int
 import Control.Applicative
 import qualified Data.Map as Map
 import Tecs.Utility
 import Tecs.Definitions
 import Tecs.Types
 import Tecs.Parsing
-
-type Symbols = Map.Map String Int16
 
 computeSymbols :: [Instruction] -> Symbols
 computeSymbols instructions = addVariables startingVariableMemory (addLabels 0 predefinedVariables instructions) instructions
@@ -25,17 +23,24 @@ computeSymbols instructions = addVariables startingVariableMemory (addLabels 0 p
     addVariables nextMemory symbols (_ : rest) = addVariables nextMemory symbols rest
     addVariables _ symbols [] = symbols
 
-makeOperations :: [Instruction] -> Maybe [Operation]
-makeOperations instructions = sequence $ go (computeSymbols instructions) instructions
+assembleOperations :: [Instruction] -> Either String [Operation]
+assembleOperations instructions = sequence $ go instructions
   where
-    go symbols (AInstruction (AName name) : rest) = (AOperation <$> Map.lookup name symbols) : go symbols rest
-    go symbols (AInstruction (AValue value) : rest) = Just (AOperation value) : go symbols rest
-    go symbols (LabelInstruction _ : rest) = go symbols rest
-    go symbols (CInstruction comp dest jump : rest) = (COperation <$> Map.lookup comp compMap <*> Map.lookup dest destMap <*> Map.lookup jump jumpMap) : go symbols rest
-    go _ [] = []
+    symbols = computeSymbols instructions
+    mapLookup name m mapType = case Map.lookup name m of
+      Nothing -> Left $ "No such symbol " ++ name ++ " found in " ++ mapType ++ " table"
+      Just r -> Right r
+    go (AInstruction (AName name) : rest) = (AOperation <$> mapLookup name symbols "symbols") : go rest
+    go (AInstruction (AConstant value) : rest) = Right (AOperation value) : go rest
+    go (LabelInstruction _ : rest) = go rest
+    go (CInstruction comp dest jump : rest) = (COperation <$>
+      mapLookup comp compMap "compute" <*>
+      mapLookup dest destMap "destination" <*>
+      mapLookup jump jumpMap "jump") : go rest
+    go [] = []
 
-assemble :: String -> Maybe [Operation]
-assemble content = parseInstructions content >>= makeOperations
+assemble :: String -> Either String [Operation]
+assemble content = parseInstructions content >>= assembleOperations
 
 printOperations :: [Operation] -> String
 printOperations ops = unlines $ map printOperationBinary ops
