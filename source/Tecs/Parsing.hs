@@ -3,27 +3,31 @@ module Tecs.Parsing (
 ) where
 
 import Control.Monad
-import qualified Data.Map as Map
 import Data.Maybe
-import Data.Word
 import Data.Char
 import Text.Parsec
 import Tecs.Definitions
 import Tecs.Types
 
-positiveNatural :: Parsec String st Int
+positiveNatural :: Parsec String st Integer
 positiveNatural = do
   digits <- many1 digit
-  return $ foldl (\a i -> a * 10 + digitToInt i) 0 digits
+  return $ foldl (\a i -> a * 10 + fromIntegral (digitToInt i)) 0 digits
+
+asmLabel :: Parsec String st String
+asmLabel = do
+  s <- letter
+  rest <- many $ satisfy $ \x -> (x `notElem` "()") && isPrint x && not (isSpace x)
+  return $ s : rest
 
 aConstant :: Parsec String st AValue
 aConstant = do
   num <- positiveNatural
-  when (num > fromIntegral (maxBound :: Word16)) $ fail "Out of bound A-Constant"
+  when (num > fromIntegral maximumAConstant) $ fail "Out of bound A-Constant"
   return $ AConstant $ fromIntegral num
 
 aName :: Parsec String st AValue
-aName = liftM AName $ many1 letter
+aName = liftM AName asmLabel
 
 aInstruction :: Parsec String st Instruction
 aInstruction = do
@@ -33,23 +37,23 @@ aInstruction = do
 labelInstruction :: Parsec String st Instruction
 labelInstruction = do
   _ <- char '('
-  name <- many1 letter
+  name <- asmLabel
   _ <- char ')'
   return (LabelInstruction name)
 
+cCompPart :: Parsec String st String
+cCompPart = choice $ map (try . string) sortedComps
+
 cDestPart :: Parsec String st String
 cDestPart = do
-  dest <- choice $ map string (Map.keys destMap)
+  dest <- choice $ map (try . string) sortedDests
   _ <- char '='
   return dest
-
-cCompPart :: Parsec String st String
-cCompPart = choice $ map string (Map.keys compMap)
 
 cJumpPart :: Parsec String st String
 cJumpPart = do
   _ <- char ';'
-  choice $ map string (Map.keys jumpMap)
+  choice $ map (try . string) sortedJumps
 
 cInstruction :: Parsec String st Instruction
 cInstruction = do
@@ -64,14 +68,14 @@ instructionPart = aInstruction <|> labelInstruction <|> cInstruction
 comment :: Parsec String st ()
 comment = do
   _ <- string "//"
-  _ <- many (noneOf "\n")
+  _ <- many (noneOf "\r\n")
   return ()
 
 endLinePart :: Parsec String st ()
 endLinePart = do
   skipMany (oneOf " \t")
   optional comment
-  _ <- char '\n'
+  _ <- string "\r\n" <|> string "\n"
   return ()
 
 instructionLine :: Parsec String st (Maybe Instruction)

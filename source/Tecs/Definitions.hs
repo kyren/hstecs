@@ -2,12 +2,18 @@ module Tecs.Definitions (
   compMap,
   destMap,
   jumpMap,
+  sortedComps,
+  sortedDests,
+  sortedJumps,
   predefinedVariables,
   startingVariableMemory,
-  maximumVariableMemory
+  maximumVariableMemory,
+  maximumAConstant
 ) where
 
 import Data.Word
+import Data.List
+import Data.Ord
 import qualified Data.Map as Map
 
 compMap :: Map.Map String Word8
@@ -93,8 +99,24 @@ predefinedVariables = Map.fromList [
     ("KBD", 24576)
   ]
 
+-- Return keys in order of longest to shortest (for parsing)
+sortedKeys :: Map.Map String a -> [String]
+sortedKeys m = sortBy (comparing (negate . length)) (Map.keys m)
+
+sortedComps :: [String]
+sortedComps = sortedKeys compMap
+
+sortedDests :: [String]
+sortedDests = sortedKeys destMap
+
+sortedJumps :: [String]
+sortedJumps = sortedKeys jumpMap
+
 startingVariableMemory :: Word16
 startingVariableMemory = 16
 
 maximumVariableMemory :: Word16
 maximumVariableMemory = 16383
+
+maximumAConstant :: Word16
+maximumAConstant = 32767

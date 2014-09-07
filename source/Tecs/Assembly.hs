@@ -12,7 +12,9 @@ import Tecs.Definitions
 import Tecs.Types
 import Tecs.Parsing
 
--- Does not guard against running out of symbol space yet
+-- None of the assembly functions guard against running out of variable or
+-- instruction space yet.
+
 computeSymbols :: [Instruction] -> Symbols
 computeSymbols instructions = addVariables startingVariableMemory (addLabels 0 predefinedVariables instructions) instructions
   where

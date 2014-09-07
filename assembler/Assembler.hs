@@ -1,8 +1,10 @@
+import System.Environment
 import Tecs.Assembly
 
 main :: IO ()
 main = do
-  contents <- getContents
+  [input, output] <- getArgs
+  contents <- readFile input
   case assemble contents of
     Left err -> putStrLn $ "Parse Error " ++ err
-    Right ops -> putStr $ printOperations ops
+    Right ops -> writeFile output $ printOperations ops
