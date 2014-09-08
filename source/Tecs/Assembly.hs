@@ -5,19 +5,21 @@ module Tecs.Assembly (
 ) where
 
 import Data.Char
+import Data.Word
 import Numeric
 import Control.Applicative
 import qualified Data.Map as Map
 import Tecs.Definitions
-import Tecs.Types
 import Tecs.Parsing
+
+type Symbols = Map.Map String Word16
 
 -- None of the assembly functions guard against running out of variable or
 -- instruction space yet.
-
-computeSymbols :: [Instruction] -> Symbols
-computeSymbols instructions = addVariables startingVariableMemory (addLabels 0 predefinedVariables instructions) instructions
+computeSymbols :: [Instruction] -> Either String Symbols
+computeSymbols instructions = Right $ addVariables startingVariableMemory (addLabels 0 predefinedVariables instructions) instructions
   where
+    predefinedVariables = Map.fromList [(pVariableName var, pVariableValue var) | var <- [minBound..maxBound]]
     addLabels pos labels (LabelInstruction label : rest) = addLabels pos (Map.insert label pos labels) rest
     addLabels pos labels (_ : rest) = addLabels (pos + 1) labels rest
     addLabels _ labels [] = labels
@@ -28,20 +30,18 @@ computeSymbols instructions = addVariables startingVariableMemory (addLabels 0 p
     addVariables _ symbols [] = symbols
 
 assembleOperations :: [Instruction] -> Either String [Operation]
-assembleOperations instructions = sequence $ go instructions
-  where
-    symbols = computeSymbols instructions
-    mapLookup name m mapType = case Map.lookup name m of
-      Nothing -> Left $ "No such symbol " ++ name ++ " found in " ++ mapType ++ " table"
-      Just r -> Right r
-    go (AInstruction (AName name) : rest) = (AOperation <$> mapLookup name symbols "symbols") : go rest
-    go (AInstruction (AConstant value) : rest) = Right (AOperation value) : go rest
-    go (LabelInstruction _ : rest) = go rest
-    go (CInstruction comp dest jump : rest) = (COperation <$>
-      mapLookup comp compMap "compute" <*>
-      mapLookup dest destMap "destination" <*>
-      mapLookup jump jumpMap "jump") : go rest
-    go [] = []
+assembleOperations instructions = case computeSymbols instructions of
+  Left err -> Left err
+  Right symbols -> sequence $ go instructions
+    where
+      symbolLookup name = case Map.lookup name symbols of
+        Nothing -> Left $ "No such symbol " ++ name ++ " found in symbols table"
+        Just r -> Right r
+      go (AInstruction (AName name) : rest) = (AOperation <$> symbolLookup name) : go rest
+      go (AInstruction (AConstant value) : rest) = Right (AOperation value) : go rest
+      go (LabelInstruction _ : rest) = go rest
+      go (CInstruction comp dest jump : rest) = Right (COperation (compValue comp) (destValue dest) (jumpValue jump)) : go rest
+      go [] = []
 
 assemble :: String -> Either String [Operation]
 assemble content = parseInstructions content >>= assembleOperations

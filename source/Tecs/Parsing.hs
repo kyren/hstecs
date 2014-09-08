@@ -5,9 +5,18 @@ module Tecs.Parsing (
 import Control.Monad
 import Data.Maybe
 import Data.Char
+import qualified Data.Map as Map
 import Text.Parsec
 import Tecs.Definitions
-import Tecs.Types
+
+compMap :: Map.Map String Comp
+compMap = Map.fromList [(compName comp, comp) | comp <- [minBound..maxBound]]
+
+destMap :: Map.Map String Dest
+destMap = Map.fromList [(destName dest, dest) | dest <- [minBound..maxBound]]
+
+jumpMap :: Map.Map String Jump
+jumpMap = Map.fromList [(jumpName jump, jump) | jump <- [minBound..maxBound]]
 
 positiveNatural :: Parsec String st Integer
 positiveNatural = do
@@ -41,25 +50,34 @@ labelInstruction = do
   _ <- char ')'
   return (LabelInstruction name)
 
-cCompPart :: Parsec String st String
-cCompPart = choice $ map (try . string) sortedComps
+cCompPart :: Parsec String st Comp
+cCompPart = do
+  compString <- many1 (noneOf "=;\r\n")
+  case Map.lookup compString compMap of
+    Just comp -> return comp
+    Nothing -> fail $ "Unrecognized comp operator '" ++ compString ++ "'"
 
-cDestPart :: Parsec String st String
+cDestPart :: Parsec String st Dest
 cDestPart = do
-  dest <- choice $ map (try . string) sortedDests
+  destString <- many1 (noneOf "=;\r\n")
   _ <- char '='
-  return dest
+  case Map.lookup destString destMap of
+    Just dest -> return dest
+    Nothing -> fail $ "Unrecognized dest operator '" ++ destString ++ "'"
 
-cJumpPart :: Parsec String st String
+cJumpPart :: Parsec String st Jump
 cJumpPart = do
   _ <- char ';'
-  choice $ map (try . string) sortedJumps
+  jumpString <- many1 (noneOf "=;\r\n")
+  case Map.lookup jumpString jumpMap of
+    Just jump -> return jump
+    Nothing -> fail $ "Unrecognized jump operator '" ++ jumpString ++ "'"
 
 cInstruction :: Parsec String st Instruction
 cInstruction = do
-  dest <- try cDestPart <|> return "NULL"
+  dest <- try cDestPart <|> return DestNULL
   comp <- cCompPart
-  jump <- try cJumpPart <|> return "NULL"
+  jump <- try cJumpPart <|> return JumpNULL
   return $ CInstruction comp dest jump
 
 instructionPart :: Parsec String st Instruction
