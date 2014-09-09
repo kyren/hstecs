@@ -83,6 +83,11 @@ data Instruction =
   CInstruction Comp Dest Jump
   deriving Show
 
+data Operation =
+  AOperation Word16 |
+  COperation Comp Dest Jump
+  deriving Show
+
 data PVariable =
   PVariableSP |
   PVariableLCL |
@@ -109,158 +114,104 @@ data PVariable =
   PVariableKBD
   deriving (Enum, Bounded, Show)
 
-data Operation = AOperation Word16 | COperation Word8 Word8 Word8
-  deriving Show
+compDesc :: Comp -> (String, Word8)
+compDesc CompZero = ("0", 0x2a)
+compDesc CompOne = ("1", 0x3f)
+compDesc CompMinusOne = ("-1", 0x3a)
+compDesc CompD = ("D", 0x0c)
+compDesc CompA = ("A", 0x30)
+compDesc CompNotD = ("!D", 0x0d)
+compDesc CompNotA = ("!A", 0x31)
+compDesc CompMinusD = ("-D", 0x0f)
+compDesc CompMinusA = ("-A", 0x33)
+compDesc CompDPlusOne = ("D+1", 0x1f)
+compDesc CompAPlusOne = ("A+1", 0x37)
+compDesc CompDMinusOne = ("D-1", 0x0e)
+compDesc CompAMinusOne = ("A-1", 0x32)
+compDesc CompDPlusA = ("D+A", 0x02)
+compDesc CompDMinusA = ("D-A", 0x13)
+compDesc CompAMinusD = ("A-D", 0x07)
+compDesc CompDAndA = ("D&A", 0x00)
+compDesc CompDOrA = ("D|A", 0x15)
+compDesc CompM = ("M", 0x70)
+compDesc CompNotM = ("!M", 0x71)
+compDesc CompMinusM = ("-M", 0x73)
+compDesc CompMPlusOne = ("M+1", 0x77)
+compDesc CompMMinusOne = ("M-1", 0x72)
+compDesc CompDPlusM = ("D+M", 0x42)
+compDesc CompDMinusM = ("D-M", 0x43)
+compDesc CompMMinusD = ("M-D", 0x47)
+compDesc CompDAndM = ("D&M", 0x40)
+compDesc CompDOrM = ("D|M", 0x55)
 
 compName :: Comp -> String
-compName CompZero = "0"
-compName CompOne = "1"
-compName CompMinusOne = "-1"
-compName CompD = "D"
-compName CompA = "A"
-compName CompNotD = "!D"
-compName CompNotA = "!A"
-compName CompMinusD = "-D"
-compName CompMinusA = "-A"
-compName CompDPlusOne = "D+1"
-compName CompAPlusOne = "A+1"
-compName CompDMinusOne = "D-1"
-compName CompAMinusOne = "A-1"
-compName CompDPlusA = "D+A"
-compName CompDMinusA = "D-A"
-compName CompAMinusD = "A-D"
-compName CompDAndA = "D&A"
-compName CompDOrA = "D|A"
-compName CompM = "M"
-compName CompNotM = "!M"
-compName CompMinusM = "-M"
-compName CompMPlusOne = "M+1"
-compName CompMMinusOne = "M-1"
-compName CompDPlusM = "D+M"
-compName CompDMinusM = "D-M"
-compName CompMMinusD = "M-D"
-compName CompDAndM = "D&M"
-compName CompDOrM = "D|M"
+compName = fst . compDesc
 
 compValue :: Comp -> Word8
-compValue CompZero = 0x2a
-compValue CompOne = 0x3f
-compValue CompMinusOne = 0x3a
-compValue CompD = 0x0c
-compValue CompA = 0x30
-compValue CompNotD = 0x0d
-compValue CompNotA = 0x31
-compValue CompMinusD = 0x0f
-compValue CompMinusA = 0x33
-compValue CompDPlusOne = 0x1f
-compValue CompAPlusOne = 0x37
-compValue CompDMinusOne = 0x0e
-compValue CompAMinusOne = 0x32
-compValue CompDPlusA = 0x02
-compValue CompDMinusA = 0x13
-compValue CompAMinusD = 0x07
-compValue CompDAndA = 0x00
-compValue CompDOrA = 0x15
-compValue CompM = 0x70
-compValue CompNotM = 0x71
-compValue CompMinusM = 0x73
-compValue CompMPlusOne = 0x77
-compValue CompMMinusOne = 0x72
-compValue CompDPlusM = 0x42
-compValue CompDMinusM = 0x43
-compValue CompMMinusD = 0x47
-compValue CompDAndM = 0x40
-compValue CompDOrM = 0x55
+compValue = snd . compDesc
+
+destDesc :: Dest -> (String, Word8)
+destDesc DestNULL = ("NULL", 0x0)
+destDesc DestM = ("M", 0x1)
+destDesc DestD = ("D", 0x2)
+destDesc DestMD = ("MD", 0x3)
+destDesc DestA = ("A", 0x4)
+destDesc DestAM = ("AM", 0x5)
+destDesc DestAD = ("AD", 0x6)
+destDesc DestAMD = ("AMD", 0x7)
 
 destName :: Dest -> String
-destName DestNULL = "NULL"
-destName DestM = "M"
-destName DestD = "D"
-destName DestMD = "MD"
-destName DestA = "A"
-destName DestAM = "AM"
-destName DestAD = "AD"
-destName DestAMD = "AMD"
+destName = fst . destDesc
 
 destValue :: Dest -> Word8
-destValue DestNULL = 0x0
-destValue DestM = 0x1
-destValue DestD = 0x2
-destValue DestMD = 0x3
-destValue DestA = 0x4
-destValue DestAM = 0x5
-destValue DestAD = 0x6
-destValue DestAMD = 0x7
+destValue = snd . destDesc
+
+jumpDesc :: Jump -> (String, Word8)
+jumpDesc JumpNULL = ("NULL", 0x0)
+jumpDesc JumpGT = ("JGT", 0x1)
+jumpDesc JumpEQ = ("JEQ", 0x2)
+jumpDesc JumpGE = ("JGE", 0x3)
+jumpDesc JumpLT = ("JLT", 0x4)
+jumpDesc JumpNE = ("JNE", 0x5)
+jumpDesc JumpLE = ("JLE", 0x6)
+jumpDesc JumpMP = ("JMP", 0x7)
 
 jumpName :: Jump -> String
-jumpName JumpNULL = "NULL"
-jumpName JumpGT = "JGT"
-jumpName JumpEQ = "JEQ"
-jumpName JumpGE = "JGE"
-jumpName JumpLT = "JLT"
-jumpName JumpNE = "JNE"
-jumpName JumpLE = "JLE"
-jumpName JumpMP = "JMP"
+jumpName = fst . jumpDesc
 
 jumpValue :: Jump -> Word8
-jumpValue JumpNULL = 0x0
-jumpValue JumpGT = 0x1
-jumpValue JumpEQ = 0x2
-jumpValue JumpGE = 0x3
-jumpValue JumpLT = 0x4
-jumpValue JumpNE = 0x5
-jumpValue JumpLE = 0x6
-jumpValue JumpMP = 0x7
+jumpValue = snd . jumpDesc
+
+pVariableDesc :: PVariable -> (String, Word16)
+pVariableDesc PVariableSP = ("SP", 0x0)
+pVariableDesc PVariableLCL = ("LCL", 0x1)
+pVariableDesc PVariableARG = ("ARG", 0x2)
+pVariableDesc PVariableTHIS = ("THIS", 0x3)
+pVariableDesc PVariableTHAT = ("THAT", 0x4)
+pVariableDesc PVariableR0 = ("R0", 0x0)
+pVariableDesc PVariableR1 = ("R1", 0x1)
+pVariableDesc PVariableR2 = ("R2", 0x2)
+pVariableDesc PVariableR3 = ("R3", 0x3)
+pVariableDesc PVariableR4 = ("R4", 0x4)
+pVariableDesc PVariableR5 = ("R5", 0x5)
+pVariableDesc PVariableR6 = ("R6", 0x6)
+pVariableDesc PVariableR7 = ("R7", 0x7)
+pVariableDesc PVariableR8 = ("R8", 0x8)
+pVariableDesc PVariableR9 = ("R9", 0x9)
+pVariableDesc PVariableR10 = ("R10", 0xa)
+pVariableDesc PVariableR11 = ("R11", 0xb)
+pVariableDesc PVariableR12 = ("R12", 0xc)
+pVariableDesc PVariableR13 = ("R13", 0xd)
+pVariableDesc PVariableR14 = ("R14", 0xe)
+pVariableDesc PVariableR15 = ("R15", 0xf)
+pVariableDesc PVariableSCREEN = ("SCREEN", 0x4000)
+pVariableDesc PVariableKBD = ("KBD", 0x6000)
 
 pVariableName :: PVariable -> String
-pVariableName PVariableSP = "SP"
-pVariableName PVariableLCL = "LCL"
-pVariableName PVariableARG = "ARG"
-pVariableName PVariableTHIS = "THIS"
-pVariableName PVariableTHAT = "THAT"
-pVariableName PVariableR0 = "R0"
-pVariableName PVariableR1 = "R1"
-pVariableName PVariableR2 = "R2"
-pVariableName PVariableR3 = "R3"
-pVariableName PVariableR4 = "R4"
-pVariableName PVariableR5 = "R5"
-pVariableName PVariableR6 = "R6"
-pVariableName PVariableR7 = "R7"
-pVariableName PVariableR8 = "R8"
-pVariableName PVariableR9 = "R9"
-pVariableName PVariableR10 = "R10"
-pVariableName PVariableR11 = "R11"
-pVariableName PVariableR12 = "R12"
-pVariableName PVariableR13 = "R13"
-pVariableName PVariableR14 = "R14"
-pVariableName PVariableR15 = "R15"
-pVariableName PVariableSCREEN = "SCREEN"
-pVariableName PVariableKBD = "KBD"
+pVariableName = fst . pVariableDesc
 
 pVariableValue :: PVariable -> Word16
-pVariableValue PVariableSP = 0
-pVariableValue PVariableLCL = 1
-pVariableValue PVariableARG = 2
-pVariableValue PVariableTHIS = 3
-pVariableValue PVariableTHAT = 4
-pVariableValue PVariableR0 = 0
-pVariableValue PVariableR1 = 1
-pVariableValue PVariableR2 = 2
-pVariableValue PVariableR3 = 3
-pVariableValue PVariableR4 = 4
-pVariableValue PVariableR5 = 5
-pVariableValue PVariableR6 = 6
-pVariableValue PVariableR7 = 7
-pVariableValue PVariableR8 = 8
-pVariableValue PVariableR9 = 9
-pVariableValue PVariableR10 = 10
-pVariableValue PVariableR11 = 11
-pVariableValue PVariableR12 = 12
-pVariableValue PVariableR13 = 13
-pVariableValue PVariableR14 = 14
-pVariableValue PVariableR15 = 15
-pVariableValue PVariableSCREEN = 16384
-pVariableValue PVariableKBD = 24576
+pVariableValue = snd . pVariableDesc
 
 startingVariableMemory :: Word16
 startingVariableMemory = 16
