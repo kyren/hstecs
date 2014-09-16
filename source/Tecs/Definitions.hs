@@ -217,7 +217,7 @@ startingVariableMemory :: Word16
 startingVariableMemory = 16
 
 maximumVariableMemory :: Word16
-maximumVariableMemory = 16383
+maximumVariableMemory = 0x3fff
 
 maximumAConstant :: Word16
-maximumAConstant = 32767
+maximumAConstant = 0x7fff
