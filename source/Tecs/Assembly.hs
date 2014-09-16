@@ -28,7 +28,7 @@ computeSymbols instructions = addVariables startingVariableMemory (addLabels 0 p
     addVariables nextMemory symbols (_ : rest) = addVariables nextMemory symbols rest
     addVariables _ symbols [] = symbols
 
--- Uses unsafe Map.!, relying on computeSymbols containing every symbol
+-- Uses partial Map.!, relies on computeSymbols containing every symbol
 assembleOperations :: [Instruction] -> [Operation]
 assembleOperations instructions = go instructions
     where
