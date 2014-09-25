@@ -15,13 +15,13 @@ module Tecs.Definitions (
   pVariableName,
   pVariableValue,
   startingVariableMemory,
-  maximumVariableMemory,
-  maximumAConstant
+  maximumVariableMemory
 ) where
 
 import Data.Word
+import Data.Int
 
-data AValue = AName String | AConstant Word16
+data AValue = AName String | AConstant Int16
   deriving Show
 
 data Comp =
@@ -84,7 +84,7 @@ data Instruction =
   deriving Show
 
 data Operation =
-  AOperation Word16 |
+  AOperation Int16 |
   COperation Comp Dest Jump
   deriving Show
 
@@ -182,7 +182,7 @@ jumpName = fst . jumpDesc
 jumpValue :: Jump -> Word8
 jumpValue = snd . jumpDesc
 
-pVariableDesc :: PVariable -> (String, Word16)
+pVariableDesc :: PVariable -> (String, Int16)
 pVariableDesc PVariableSP = ("SP", 0x0)
 pVariableDesc PVariableLCL = ("LCL", 0x1)
 pVariableDesc PVariableARG = ("ARG", 0x2)
@@ -210,14 +210,11 @@ pVariableDesc PVariableKBD = ("KBD", 0x6000)
 pVariableName :: PVariable -> String
 pVariableName = fst . pVariableDesc
 
-pVariableValue :: PVariable -> Word16
+pVariableValue :: PVariable -> Int16
 pVariableValue = snd . pVariableDesc
 
-startingVariableMemory :: Word16
+startingVariableMemory :: Int16
 startingVariableMemory = 16
 
-maximumVariableMemory :: Word16
+maximumVariableMemory :: Int16
 maximumVariableMemory = 0x3fff
-
-maximumAConstant :: Word16
-maximumAConstant = 0x7fff

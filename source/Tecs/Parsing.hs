@@ -5,6 +5,7 @@ module Tecs.Parsing (
 import Control.Monad
 import Data.Maybe
 import Data.Char
+import Data.Int
 import qualified Data.Map as Map
 import Text.Parsec
 import Tecs.Definitions
@@ -32,7 +33,7 @@ asmLabel = do
 aConstant :: Parsec String st AValue
 aConstant = do
   num <- positiveNatural
-  when (num > fromIntegral maximumAConstant) $ fail "Out of bound A-Constant"
+  when (num > fromIntegral (maxBound :: Int16)) $ fail "Out of bound A-Constant"
   return $ AConstant $ fromIntegral num
 
 aName :: Parsec String st AValue

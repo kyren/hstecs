@@ -7,12 +7,13 @@ module Tecs.Assembly (
 import Numeric
 import Data.Char
 import Data.Word
+import Data.Int
 import Data.Bits
 import qualified Data.Map as Map
 import Tecs.Definitions
 import Tecs.Parsing
 
-type Symbols = Map.Map String Word16
+type Symbols = Map.Map String Int16
 
 -- Does not guard against running out of variable or instruction space yet.
 computeSymbols :: [Instruction] -> Symbols
@@ -45,7 +46,7 @@ assemble content = case parseInstructions content of
   Right inst -> Right $ assembleOperations inst
 
 operationWord :: Operation -> Word16
-operationWord (AOperation val) = 0x7fff .&. val
+operationWord (AOperation val) = 0x7fff .&. fromIntegral val
 operationWord (COperation comp dest jump) = 0xe000 .|. bits compBits 7 6 .|. bits destBits 3 3 .|. bits jumpBits 3 0
   where
     compBits = fromIntegral $ compValue comp
