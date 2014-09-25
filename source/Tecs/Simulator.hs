@@ -6,7 +6,8 @@ module Tecs.Simulator (
   HackMemoryST,
   runHackMemoryST,
   HackState(..),
-  runHackInstruction
+  runHackOperation,
+  runHackST,
 ) where
 
 import Data.Int
@@ -52,9 +53,9 @@ data HackState = HackState {
     programCounter :: Int16
   }
 
-runHackInstruction :: (HackMemory m) => Operation -> HackState -> m HackState
-runHackInstruction (AOperation word) (HackState _ d pc) = return $ HackState word d (pc + 1)
-runHackInstruction (COperation comp dest jump) hstate = do
+runHackOperation :: (HackMemory m) => Operation -> HackState -> m HackState
+runHackOperation (AOperation word) (HackState _ d pc) = return $ HackState word d (pc + 1)
+runHackOperation (COperation comp dest jump) hstate = do
   cr <- calcComp comp hstate
   newState <- putDest dest cr hstate
   return $ doJump jump cr newState
@@ -112,3 +113,15 @@ doJump JumpLT cr = jumpCond (cr < 0)
 doJump JumpNE cr = jumpCond (cr /= 0)
 doJump JumpLE cr = jumpCond (cr <= 0)
 doJump JumpMP _ = jumpCond True
+
+runHackST :: [Operation] -> Int -> [Int16] -> [Int16]
+runHackST ops count rs = runHackMemoryST $ do
+    let initialState = HackState 0 0 0
+    _ <- go count initialState
+    mapM peek rs
+  where
+    go c state
+      | c > 0 = runHackOperation (ops !! fromIntegral (programCounter state)) state >>= go (c - 1)
+      | otherwise = return state
+
+
