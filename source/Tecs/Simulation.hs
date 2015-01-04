@@ -1,64 +1,23 @@
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
-module Tecs.Simulator (
+module Tecs.Simulation (
   HackMemory(..),
-  HackMemoryST,
-  runHackMemoryST,
   HackState(..),
-  runHackOperation,
-  runHackST,
+  runHackOperation
 ) where
 
 import Data.Int
 import Data.Bits
-import Data.Array.MArray
-import Data.Array.ST
 import Control.Monad
-import Control.Monad.ST
-import Control.Applicative
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Reader
 import Tecs.Definitions
 
 class Monad m => HackMemory m where
   peek :: Int16 -> m Int16
   poke :: Int16 -> Int16 -> m ()
 
-type HackMemoryArrayST s = STUArray s Int16 Int16
-
-newtype HackMemoryST s a = HackMemoryST (ReaderT (HackMemoryArrayST s) (ST s) a)
-  deriving (Monad, Applicative, Functor)
-
-instance HackMemory (HackMemoryST s) where
-  peek i = HackMemoryST $ do
-    arr <- ask
-    lift $ readArray arr i
-
-  poke i v = HackMemoryST $ do
-    arr <- ask
-    lift $ writeArray arr i v
-    return ()
-
-runHackMemoryST :: (forall s. HackMemoryST s a) -> a
-runHackMemoryST hst = runST $ go hst
-  where
-    go (HackMemoryST hacks) = do
-      arr <- newArray (0, maximumVariableMemory) 0 :: ST s (HackMemoryArrayST s)
-      runReaderT hacks arr
-
 data HackState = HackState {
     aRegister :: Int16,
     dRegister :: Int16,
     programCounter :: Int16
   }
-
-runHackOperation :: (HackMemory m) => Operation -> HackState -> m HackState
-runHackOperation (AOperation word) (HackState _ d pc) = return $ HackState word d (pc + 1)
-runHackOperation (COperation comp dest jump) hstate = do
-  cr <- calcComp comp hstate
-  newState <- putDest dest cr hstate
-  return $ doJump jump cr newState
 
 calcComp :: (HackMemory m) => Comp -> HackState -> m Int16
 calcComp CompZero _ = return 0
@@ -114,14 +73,9 @@ doJump JumpNE cr = jumpCond (cr /= 0)
 doJump JumpLE cr = jumpCond (cr <= 0)
 doJump JumpMP _ = jumpCond True
 
-runHackST :: [Operation] -> Int -> [Int16] -> [Int16]
-runHackST ops count rs = runHackMemoryST $ do
-    let initialState = HackState 0 0 0
-    _ <- go count initialState
-    mapM peek rs
-  where
-    go c state
-      | c > 0 = runHackOperation (ops !! fromIntegral (programCounter state)) state >>= go (c - 1)
-      | otherwise = return state
-
-
+runHackOperation :: (HackMemory m) => Operation -> HackState -> m HackState
+runHackOperation (AOperation word) (HackState _ d pc) = return $ HackState word d (pc + 1)
+runHackOperation (COperation comp dest jump) hstate = do
+  cr <- calcComp comp hstate
+  newState <- putDest dest cr hstate
+  return $ doJump jump cr newState
