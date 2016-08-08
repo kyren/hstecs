@@ -9,7 +9,6 @@ import Data.Int
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed.Mutable as VUM
 import Control.Monad.ST
-import Control.Applicative
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
 import Tecs.Definitions
